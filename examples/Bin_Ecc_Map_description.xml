@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+
+<!-- This file describes the Bin_Ecc_Map XML format -->
+
+<!-- value format types
+       The types that can get some binary values are called here value format types
+       Those types can have several attributes:
+         format='32bit' (default): the text value is considered 32 bit value, 
+           if preceded with 0x it is considered hexadecimal value, otherwise a decimal value
+           example: <content format='32bit'>0x67452301</content>
+         format='bytes' : the text value is considered 8 bit value, 
+           if preceded with 0x it is considered hexadecimal value, otherwise a decimal value
+           if there are several values one after another with space between the second one will be 1 byte after the first one and so forth
+           example: <content format='bytes'>0x50 0x07 0x55 0xAA 0x54 0x4F 0x4F 0x42</content>
+         format='FileContent': the text value is considered a path to a file that its content is taken into the field 
+           example: <content format='FileContent'>./BootBlock.bin</content>
+         format='FileSize': the text value is considered a path to a file that its length is calculated and taken into the field
+           example: <size format='FileSize'>./BootBlock.bin</size>
+         align='value': if format='FileSize' attribute is used the value of the field will be aligned up to the attribute value
+           if preceded with 0x it is considered hexadecimal value, otherwise a decimal value
+           example: <size format='FileSize' align='0x1000'>./BootBlock.bin</size>
+         file_start_offset='value': if format='FileContent' is used, this attribute determine from which offset to take the content of the file
+           without this field the offset is 0 (the size taken is from size field)
+           if preceded with 0x it is considered hexadecimal value, otherwise a decimal value
+           example: <content format='FileContent' file_start_offset='128'>./RSA_Public_Key_2.bin</content>
+       Tag fields that can take the value format types:
+         BinField.config.offset
+         BinField.config.size
+         BinField.content
+-->
+
+<!-- Bin_Ecc_Map field is mandatory -->
+<Bin_Ecc_Map>
+    
+    <!-- ImageProperties is optional, if omitted the values of its children will be their default -->
+    <ImageProperties>
+        <!-- BinSize is the size of the output binary, 
+             if BinSize = 0 or it is omitted, the binary size will be calculated oat runtime according to BinField -->
+        <BinSize>1024</BinSize>
+        <!-- PadValue is the value padded between foelds in the binary or to its end, 
+             if PadValue is omitted its default value is 0 -->
+        <PadValue>0xFF</PadValue>
+    </ImageProperties>
+        
+    <!-- BinField must appear at list once inside Bin_Ecc_Map -->
+    <BinField>
+        <!-- name is an optional field that gives a meaning to this BinField -->
+        <name>MyFirstField</name>
+        <!-- config describes the BinField configuration -->
+        <config>
+            <!-- ecc describes the ECC method: 
+                   none (or if this field is omitted): BinField.content will be added as is,
+                     actual size will be config.size x1
+                   majority: the BinField.content will be duplicated 3 times one after another, 
+                     actual size will be config.size x3
+                   nibble: the BinField.content will be calculated nibble by nibble with its nibble parity calculation, 
+                     actual size will be config.size x2
+                   10_bits_majority: config.size must be 2, but only the first 10 bits are relevant for calculation, 
+                     those 10 bits will be duplicated 3 times one after another, actual size will be 4 bytes -->
+            <ecc>majority</ecc>
+            <!-- offset defines the offset inside the binary file that the BinField.content will be put (in value format type) -->
+            <offset>0</offset>
+            <!-- size defines the size of BinField.content inside the binary file before it ECC calculation (in value format type)
+                 For each ecc calculation the actual size will be: 
+                   none:     size x1
+                   majority: size x3
+                   nibble:   size x2
+                   10_bits_majority: 4 bytes -->
+            <size>8</size>
+        </config>
+        <!-- content the user should fill into the binary file (in value format type) -->
+        <content format='bytes'>0x01 0x23 0x45 0x67 0x89 0xAB 0xCD 0xEF</content>
+    </BinField> 
+    
+    <BinField>
+        <name>MySecondField</name>
+        <config>
+            <ecc>nibble</ecc>
+            <offset>24</offset>
+            <size>2</size>
+        </config>
+        <content>0x1234</content>
+    </BinField>
+    
+    <BinField>
+        <name>SizeOfCode_CalculatedFromFileSize</name>
+        <config>
+            <ecc>none</ecc>
+            <offset>28</offset>
+            <size>4</size>
+        </config>
+        <content format='FileSize' align='2'>./CP_fw.bin</content>
+    </BinField>
+    
+    <BinField>
+        <name>DestinationOfCode</name>
+        <config>
+            <ecc>none</ecc>
+            <offset>32</offset>
+            <size>4</size>
+        </config>
+        <content format='32bit'>0xFFFD5000</content>
+    </BinField>
+    
+    <BinField>
+        <name>CodeBinary</name>
+        <config>
+            <offset>0x200</offset>
+            <size format='FileSize' align='0x1000'>./BootBlock.bin</size>
+        </config>
+        <content format='FileContent'>./BootBlock.bin</content>
+    </BinField>
+    
+</Bin_Ecc_Map>

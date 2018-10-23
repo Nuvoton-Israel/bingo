@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Bin_Ecc_Map>
+	<!-- BMC mandatory fields -->
+	<ImageProperties>
+		<BinSize>0</BinSize>         <!-- If 0 the binary size will be calculated by the tool -->
+		<PadValue>0xFF</PadValue>	<!-- Byte value to pad the empty areas, default is 0 -->
+	</ImageProperties>
+		
+	<BinField>
+		<name>BootBlock</name>         <!-- name of field -->
+		<config>
+			<offset>0</offset>            <!-- offset in the header -->
+			<size format='FileSize'>output_binaries\BootBlockHeader.bin</size>              <!-- size in the header -->
+		</config>
+		<content format='FileContent'>output_binaries\BootBlockHeader.bin</content>  <!-- content the user should fill -->
+	</BinField>
+		
+	<BinField>
+		<name>u-boot</name>         <!-- name of field -->
+		<config>
+			<offset format='FileSize' align='0x1000'>output_binaries\BootBlockHeader.bin</offset>            <!-- offset in the header -->
+			<size format='FileSize'>output_binaries\ubootHeader.bin</size>              <!-- size in the header -->
+		</config>
+		<content format='FileContent'>output_binaries\ubootHeader.bin</content>  <!-- content the user should fill -->
+	</BinField>
+	
+</Bin_Ecc_Map>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Bin_Ecc_Map>
+	<!-- BMC mandatory fields -->
+	<ImageProperties>
+		<BinSize>0</BinSize>         <!-- If 0 the binary size will be calculated by the tool -->
+		<PadValue>0xFF</PadValue>	<!-- Byte value to pad the empty areas, default is 0 -->
+	</ImageProperties>
+		
+	<BinField>
+		<name>Image1</name>         <!-- name of field -->
+		<config>
+			<offset>0</offset>            <!-- offset in the header -->
+			<size format='FileSize'>output_binaries\mergedBootHeaders.bin</size>              <!-- size in the header -->
+		</config>
+		<content format='FileContent'>output_binaries\mergedBootHeaders.bin</content>  <!-- content the user should fill -->
+	</BinField>
+		
+	<BinField>
+		<name>Image2</name>         <!-- name of field -->
+		<config>
+			<offset>0x80000</offset>            <!-- offset in the header -->
+			<size format='FileSize'>output_binaries\mergedBootHeaders.bin</size>              <!-- size in the header -->
+		</config>
+		<content format='FileContent'>output_binaries\mergedBootHeaders.bin</content>  <!-- content the user should fill -->
+	</BinField>
+	
+	<BinField>
+		<!-- The Co-Processor binary file -->
+		<name>CP_Code</name>          <!-- name of field -->
+		<config>
+			<offset>0x100000</offset>             <!-- offset in the image taken from CPSourceAddr -->
+			<size format='FileSize' align='2'>input_binaries\PolegCoPro.bin</size>                 <!-- size in the image taken from CPSourceSize -->
+		</config>
+		<content format='FileContent'>input_binaries\PolegCoPro.bin</content>      <!-- content the user should fill -->
+	</BinField>
+	
+</Bin_Ecc_Map>

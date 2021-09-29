@@ -21,7 +21,7 @@
 
 using namespace std;
 
-
+int isMaskRequested = 0;
 template <class UINT_T> 
 UINT32 GetIntegerFromString(string str, UINT_T &val)
 {
@@ -341,7 +341,11 @@ UINT32 HandleNumericValueString(std::string str, UINT8 * &buff, UINT32 buffSize,
 		// close file
 		infile.close();
 	}
-
+	else if (attributes.format_id == Field_Attributes::attr_maskAllSizes &&  isMaskRequested == 1)
+	{
+		padValue = 0xff;
+		memset(buff, padValue, buffSize);
+	}
 	// reverse buffer in case 
 	if (attributes.reversed)
 	{
@@ -390,6 +394,7 @@ Field_BinField::Field_BinField()
 	this->eccType = ECC_noECC;
 	this->offset = 0;
 	this->size = 0;
+	this->maskExists = false;
 }
 
 Field_BinField::~Field_BinField()
@@ -426,6 +431,10 @@ UINT32 Field_BinField::setConfiguration( std::string configurationString, std::s
 				else if (valueString == "nibble")
 				{
 					this->eccType = ECC_nibbleParity;
+				}
+				else if (valueString == "secded")
+				{
+					this->eccType = ECC_SECDED;
 				}
 				else if (valueString == "10_bits_majority")
 				{
@@ -494,6 +503,7 @@ UINT32 Field_BinField::handleElememtXML( pugi::xml_node &node )
 
 	UINT32 err;
 	Field_Attributes attributes;
+	bool MaskFound = false;
 	// The BinField field is two levels deep
 	for (pugi::xml_node_iterator node_it = node.begin(); node_it != node.end(); ++node_it)
 	{
@@ -520,9 +530,8 @@ UINT32 Field_BinField::handleElememtXML( pugi::xml_node &node )
 		{
 			this->name = node_it->child_value();
 		}
-		else if (subField == "content")
+		else if (subField == "content" || subField == "mask")
 		{
-
 			err = attributes.getAttributesFromNode(*node_it);
 			if (err)
 			{
@@ -531,6 +540,38 @@ UINT32 Field_BinField::handleElememtXML( pugi::xml_node &node )
 			}
 
 			string configurationString = node_it->name();
+			if (configurationString == "mask" && isMaskRequested)
+			{
+				MaskFound = true;
+				if (this->eccType == ECC_nibbleParity)
+				{
+					this->eccType = ECC_Mask_nibbleParity;
+				}
+				if (attributes.format_id == Field_Attributes::attr_maskAllSizes)
+					this->maskExists = true;
+			}
+			else if (configurationString == "content" && MaskFound)
+			{
+				continue; //skipping , mask came before content in XML and no meaning for content in this stage 
+			}
+			else if (configurationString == "content" && isMaskRequested)
+			{
+				//reached here- meaning no mask on XML field, fail if content != 0 
+				string valueString = node_it->child_value();
+				if (valueString != "")
+				{
+					UINT32 tempVal;
+					err = GetIntegerFromString(valueString, tempVal);
+					if (tempVal != 0)
+					{
+						std::cout << "error encountered at " << this->name << "." << subField << "." << configurationString << "=" << valueString << ", error, the content is not empty while the mask in compatible bit is 0 "<< endl;;
+						return err;
+					}
+				}
+				dataBuffer = new UINT8[size];
+				memset(dataBuffer,0x00, size);
+				continue;
+			}
 			string valueString = node_it->child_value();
 			//if the value string is not empty, handle it
 			if (valueString != "")
@@ -546,9 +587,7 @@ UINT32 Field_BinField::handleElememtXML( pugi::xml_node &node )
 			{
 				dataBuffer = new UINT8[size];
 				memset(dataBuffer, ImageConfig.paddingValue, size);
-			}
-
-			
+			}	
 		}
 		else
 		{
@@ -651,7 +690,7 @@ UINT32 Field_ImageProperties::setConfiguration( std::string configurationString,
 	return ERR_ILLEGAL_FIELD;
 }
 
-UINT32 Field_ImageProperties::handleElememtXML( pugi::xml_node &node )
+UINT32 Field_ImageProperties::handleElememtXML( pugi::xml_node &node)
 {
 	UINT32 err;
 	// The Image properties field is one level deep
@@ -718,6 +757,10 @@ UINT32 Field_Attributes::setAttribute( pugi::xml_attribute &attr )
 				else if (attrValue == SupportedFormatAttr[attr_FileContent])
 				{
 					this->format_id = attr_FileContent;
+				}
+				else if (attrValue == SupportedFormatAttr[attr_maskAllSizes])
+				{
+					this->format_id = attr_maskAllSizes;
 				}
 				else
 				{
@@ -799,4 +842,4 @@ UINT32 Field_Attributes::getAttributesFromNode( pugi::xml_node &node )
 }
 
 const string Field_Attributes::SupportedAttributes[NUM_SUPPORTED_ATTRIBUTES] = {"format", "align", "file_start_offset", "reverse"};
-const string Field_Attributes::SupportedFormatAttr[NUM_OF_SUPPORTED_FORMAT_ATTR] = {"32bit" ,"bytes", "FileSize", "FileContent"};
+const string Field_Attributes::SupportedFormatAttr[NUM_OF_SUPPORTED_FORMAT_ATTR] = {"32bit" ,"bytes", "FileSize", "FileContent", "maskAllSize"};

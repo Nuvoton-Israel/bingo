@@ -51,6 +51,7 @@ public:
 		attr_bytes,
 		attr_FileSize,
 		attr_FileContent,
+		attr_maskAllSizes,
 		NUM_OF_SUPPORTED_FORMAT_ATTR
 	}formatAttr;
 	static const std::string SupportedFormatAttr[NUM_OF_SUPPORTED_FORMAT_ATTR];
@@ -120,7 +121,8 @@ public:
 	ECC_Type		eccType;
 	UINT32			offset;
 	UINT32			size;
-	UINT8					*dataBuffer;
+	UINT8			*dataBuffer;
+	bool			maskExists;
 
 	
 

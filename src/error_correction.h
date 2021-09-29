@@ -15,7 +15,9 @@
 #ifndef ERROR_CORRECTION_H
 #define ERROR_CORRECTION_H
 
+#include "utilities.h"
 #include "bingo_types.h"
+
 
 const UINT32 ECC_SIZE_FOR_10BIT_MAJORITY = 2;
 typedef enum ECC_Type
@@ -23,26 +25,32 @@ typedef enum ECC_Type
 	ECC_noECC = 0,
 	ECC_nibbleParity,
 	ECC_majorityRule,
-	ECC_10BitsMajorityRule
+	ECC_10BitsMajorityRule,
+	ECC_SECDED,
+	ECC_Mask_nibbleParity
 }ECC_Type;
 
-inline UINT32 ECC_sizeMultipliyer(ECC_Type ecc)
+inline UINT32 ECC_getTotalSize(UINT32 size, ECC_Type ecc)
 {
 	if (ecc == ECC_noECC)
 	{
-		return 1;
+		return size;
 	} 
-	else if (ecc == ECC_nibbleParity)
+	else if (ecc == ECC_nibbleParity || ecc ==  ECC_Mask_nibbleParity)
 	{
-		return 2;
+		return size * 2;
 	}
 	else if (ecc == ECC_majorityRule)
 	{
-		return 3;
+		return size * 3;
 	} 
 	else if (ecc == ECC_10BitsMajorityRule)
 	{
-		return 2;
+		return size * 2;
+	}
+	else if (ecc == ECC_SECDED)
+	{
+		return    DIV_CEILING(9 * size, 8);    // add one byte for every 8 bytes. size on the xml is encoded size.
 	}
 	// not suppose to get here
 	return 0;

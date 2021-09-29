@@ -21,7 +21,7 @@
 #include "file_maker.h"
 
 using namespace std;
-
+extern int isMaskRequested;
 bool FM_binFieldSortFunctionHandler( Field_BinField *f1, Field_BinField *f2 )
 {
 	return ((f1->offset) < (f2->offset));
@@ -47,7 +47,7 @@ UINT32 FM_ValidateFieldVector( std::vector<Field_BinField *> &fields, Field_Imag
 		}
 
 		prevOffset = (*it)->offset;
-		prevSize = (*it)->size * ECC_sizeMultipliyer((*it)->eccType);
+		prevSize = ECC_getTotalSize((*it)->size, (*it)->eccType);
 
 		// if the ECC is 10 bit majority make sure size is 2 bytes
 		if (((*it)->eccType == ECC_10BitsMajorityRule) && ((*it)->size != ECC_SIZE_FOR_10BIT_MAJORITY) )
@@ -163,24 +163,35 @@ UINT32 FM_CreateBinFile( std::vector<Field_BinField *> &fields, Field_ImagePrope
 
 			currentOffset += (*it)->size;
 		} 
-		else
+		else 
 		{
+			
 			// calculate post-encoding size
-			UINT32 tempBuffSize = (*it)->size * ECC_sizeMultipliyer((*it)->eccType);
+			UINT32 tempBuffSize = ECC_getTotalSize((*it)->size, (*it)->eccType);
 
 			// allocate buffer
 			tempBuff = new UINT8[tempBuffSize];
 
-			// fill buffer with padding data
-			memset(tempBuff, imageConfig.paddingValue, tempBuffSize);
 			
-			// perform ECC
-			err = ECC_performECC((*it)->eccType, (*it)->dataBuffer, tempBuff, tempBuffSize);
-			if (err)
+			if ((*it)->maskExists == true && isMaskRequested)
 			{
-				break;
+				// fill buffer with padding data
+				memset(tempBuff, 0xff, tempBuffSize);
 			}
+			else
+			{
+				// fill buffer with padding data
+				memset(tempBuff, imageConfig.paddingValue, tempBuffSize);
+				// perform ECC
+				err = ECC_performECC((*it)->eccType, (*it)->dataBuffer, tempBuff, tempBuffSize);
+				if (err)
+				{
+					printf("CRC failed\n");
+					break;
+				}
 
+			}
+			
 			// write buffer to file
 			outFile.write((char *)tempBuff, tempBuffSize);
 			if (!outFile.good())

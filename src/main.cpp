@@ -36,6 +36,7 @@
 #define DEBUG_XML_FILE_PATH		"../examples/poleg_fuse_map.xml"
 #define DEFAULT_OUTPUT_FILE_PATH  "bin_image.bin"
 
+
 typedef enum _EXIT_CODE 
 {
 	//ES=Exit Status
@@ -113,7 +114,6 @@ UINT32 XML_InputFileParser(pugi::xml_document &doc)
 	}
 	return STS_OK;
 }
-
 
 int main(int argc, char *argv[])
 {

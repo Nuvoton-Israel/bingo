@@ -19,8 +19,6 @@
 #include "bingo_types.h"
 
 
-
-
 //Errors:
 typedef enum _STATUS
 {

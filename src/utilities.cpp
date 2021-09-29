@@ -17,7 +17,7 @@
 #include "errors.h"
 
 UINT32 verbosLevel = 0;
-
+extern int isMaskRequested;
 /*
 	Utilities
 */
@@ -128,7 +128,12 @@ UINT32 CmdLineParser(int argc, char *argv[], string &inputXML, string &outBin)
 		// this is a flag
 		if (arg[0] == '-')
 		{
-			if (arg == "-i") // handle input file
+			if (arg == "-mask")
+			{
+				isMaskRequested = 1;
+
+			}
+			else if (arg == "-i") // handle input file
 			{
 				inputXML = argv[i+1];
 				++i;

@@ -1,5 +1,6 @@
 # Binary Generator (Bingo)
 Generate a Binary from XML with ECC support
+Latest version 0.0.5 supports Arbel.
 
 # bingo
 bingo - Binary Image Generator

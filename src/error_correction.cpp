@@ -19,6 +19,7 @@
 #include "bingo_types.h"
 
 using namespace std;
+#define STR_SIZE 256
 
 // private functions for the ECC scope
 UINT32 ECC_encodeMajorityRule(UINT8 *dataIn, UINT8 *dataOut, UINT32 size);
@@ -94,8 +95,24 @@ UINT32 ECC_encodeMajorityRule_10Bit( UINT8 *dataIn, UINT8 *dataOut, UINT32 size 
 UINT32 ECC_encodeMaskNibbleParity(UINT8 *dataIn, UINT8 *dataOut, UINT32 size)
 {	
 	UINT32	i;
+	if (dataIn[0] != 0xff && dataIn[0] != 0x0) {	
+		char str[STR_SIZE];
+		snprintf(str, STR_SIZE, "in nibble parity, field value should be 0xff or 0x00, but it is 0x%02x\n", dataIn[0]);
+		ERR_PrintError(ERR_ILLEGAL_VAL, str);
+		return ERR_ILLEGAL_VAL; //exit(1);
+	}
+	
 	for (i = 0; i < size; ++i)
 	{
+		if (i >= 1 && i < size/2)
+		{
+			if ((dataIn[i] != 0xff && dataIn[i] != 0x0) || (dataIn[i] != dataIn[0] && dataIn[i] != 0x0)  ) {
+				char str[STR_SIZE];
+				snprintf(str, STR_SIZE, "in nibble parity there shouldn't be more than 1 byte mask (0x00/0xff) but byte %d contains 0x%02x\n", i, dataIn[i]);
+				ERR_PrintError(ERR_ILLEGAL_VAL, str);
+				return ERR_ILLEGAL_VAL; //exit(1);
+			}
+		}
 		dataOut[i] = (dataIn[0]);
 	}
 	return STS_OK;
@@ -272,7 +289,7 @@ UINT32 ECC_encode_SECDED_Parity(UINT8 *dataIn, UINT8 *dataOut, UINT32 size)
 // Parameter: UINT8 * dataOut - output data buffer
 // Parameter: UINT32 size - size of the encoded data buffer
 //************************************
-UINT32 ECC_performECC(ECC_Type type, UINT8 *dataIn, UINT8 *dataOut, UINT32 size)
+UINT32 ECC_performECC(ECC_Type type, UINT8 *dataIn, UINT8 *dataOut, UINT32 size, UINT32 offset)
 {
 	UINT32 status;
 	if (type == ECC_noECC)
@@ -283,7 +300,6 @@ UINT32 ECC_performECC(ECC_Type type, UINT8 *dataIn, UINT8 *dataOut, UINT32 size)
 	else if (type == ECC_Mask_nibbleParity)
 	{
 		status = ECC_encodeMaskNibbleParity(dataIn, dataOut, size);
-		status = STS_OK;
 	}
 	else if (type == ECC_nibbleParity)
 	{

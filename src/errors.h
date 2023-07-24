@@ -18,6 +18,11 @@
 #include <string>
 #include "bingo_types.h"
 
+#define STR_SIZE 256
+#ifdef _WIN32
+#define _CRT_SECURE_NO_WARNINGS
+#define snprintf _snprintf_s
+#endif
 
 //Errors:
 typedef enum _STATUS

@@ -200,8 +200,10 @@ UINT32 HandleNumericValueString(std::string str, UINT8 * &buff, UINT32 buffSize,
 		// if size does not coincide with val size
 		if (buffSize < str_vals.size())
 		{
+			char str[STR_SIZE];
+			snprintf(str, STR_SIZE, "Field value size is %d and it is larger than expected %d\n", str_vals.size(), buffSize );
 			// assert warning/error
-			ERR_PrintError(ERR_ILLEGAL_VAL, "Field value size larger than expected, taking only first bytes");
+			ERR_PrintError(ERR_ILLEGAL_VAL, str);
 			
 			// stop the parser
 			return(ERR_ILLEGAL_VAL);
@@ -340,11 +342,6 @@ UINT32 HandleNumericValueString(std::string str, UINT8 * &buff, UINT32 buffSize,
 
 		// close file
 		infile.close();
-	}
-	else if (attributes.format_id == Field_Attributes::attr_maskAllSizes &&  isMaskRequested == 1)
-	{
-		padValue = 0xff;
-		memset(buff, padValue, buffSize);
 	}
 	// reverse buffer in case 
 	if (attributes.reversed)
@@ -543,12 +540,25 @@ UINT32 Field_BinField::handleElememtXML( pugi::xml_node &node )
 			if (configurationString == "mask" && isMaskRequested)
 			{
 				MaskFound = true;
-				if (this->eccType == ECC_nibbleParity)
+				if (this->eccType == ECC_nibbleParity )
 				{
 					this->eccType = ECC_Mask_nibbleParity;
 				}
-				if (attributes.format_id == Field_Attributes::attr_maskAllSizes)
-					this->maskExists = true;
+				if (this->eccType == ECC_SECDED) 
+				{
+					string value = node_it->child_value();
+					if (value == "0xff" || value == "0xFF")
+					{
+						this->maskExists = true;
+					}
+					else if (value != "0x00" && value != "0x0" && value != "0")
+					{
+						std::cout << "error encountered at " << this->name << "." << subField <<", value is: " << value <<", when mask can only be 0x00/0xff"<< endl;
+						return err;
+					}
+					
+				}
+				
 			}
 			else if (configurationString == "content" && MaskFound)
 			{
@@ -758,10 +768,6 @@ UINT32 Field_Attributes::setAttribute( pugi::xml_attribute &attr )
 				{
 					this->format_id = attr_FileContent;
 				}
-				else if (attrValue == SupportedFormatAttr[attr_maskAllSizes])
-				{
-					this->format_id = attr_maskAllSizes;
-				}
 				else
 				{
 					string errStr = attrName+"="+attrValue;
@@ -842,4 +848,4 @@ UINT32 Field_Attributes::getAttributesFromNode( pugi::xml_node &node )
 }
 
 const string Field_Attributes::SupportedAttributes[NUM_SUPPORTED_ATTRIBUTES] = {"format", "align", "file_start_offset", "reverse"};
-const string Field_Attributes::SupportedFormatAttr[NUM_OF_SUPPORTED_FORMAT_ATTR] = {"32bit" ,"bytes", "FileSize", "FileContent", "maskAllSize"};
+const string Field_Attributes::SupportedFormatAttr[NUM_OF_SUPPORTED_FORMAT_ATTR] = {"32bit" ,"bytes", "FileSize", "FileContent"};

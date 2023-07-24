@@ -57,5 +57,5 @@ inline UINT32 ECC_getTotalSize(UINT32 size, ECC_Type ecc)
 }
 
 
-UINT32 ECC_performECC(ECC_Type type, UINT8 *dataIn, UINT8 *dataOut, UINT32 size);
+UINT32 ECC_performECC(ECC_Type type, UINT8 *dataIn, UINT8 *dataOut, UINT32 size, UINT32 offset);
 #endif // ERROR_CORRECTION_H

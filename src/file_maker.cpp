@@ -183,10 +183,10 @@ UINT32 FM_CreateBinFile( std::vector<Field_BinField *> &fields, Field_ImagePrope
 				// fill buffer with padding data
 				memset(tempBuff, imageConfig.paddingValue, tempBuffSize);
 				// perform ECC
-				err = ECC_performECC((*it)->eccType, (*it)->dataBuffer, tempBuff, tempBuffSize);
+				err = ECC_performECC((*it)->eccType, (*it)->dataBuffer, tempBuff, tempBuffSize, currentOffset);
 				if (err)
 				{
-					printf("CRC failed\n");
+					printf("CRC failed offset %d\n", currentOffset);
 					break;
 				}
 

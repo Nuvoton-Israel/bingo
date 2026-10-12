@@ -23,6 +23,7 @@
 #include "bingo_types.h"
 
 extern UINT32 verbosLevel;
+extern std::string xmlDirectoryPath;
 
 #define ALIGN(x, alg) (((x) + (alg) - 1) / (alg) * (alg))
 
@@ -45,4 +46,5 @@ std::vector<std::string> &split(const std::string &s, char delim, std::vector<st
 std::vector<std::string> split(const std::string &s, char delim);
 UINT32 getFileSize(const char* filename, UINT32 &size);
 UINT32 CmdLineParser(int argc, char *argv[], std::string &inputXML, std::string &outBin);
+bool TryOpenFileWithFallback(const std::string &filePath, std::ifstream &infile, std::ios_base::openmode mode = std::ios::binary);
 #endif // UTILITIES_H

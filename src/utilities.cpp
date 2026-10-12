@@ -13,10 +13,13 @@
  */
 
 #include <iostream>
+#include <string>
+#include <fstream>
 #include "utilities.h"
 #include "errors.h"
 
 UINT32 verbosLevel = 0;
+std::string xmlDirectoryPath = "";  // Directory path of the input XML file for fallback file resolution
 extern int isMaskRequested;
 /*
 	Utilities
@@ -88,12 +91,40 @@ UINT32 GetIntegerFromString(std::string str, UINT8 &val)
 }
 */
 
+bool TryOpenFileWithFallback(const std::string &filePath, std::ifstream &infile, std::ios_base::openmode mode)
+{
+	// try to open the file with original path
+	infile.open(filePath.c_str(), mode);
+	if (infile.is_open())
+	{
+		return true;
+	}
+	
+	// Try fallback with XML directory path if file not found and we have a directory path
+	if (!xmlDirectoryPath.empty())
+	{
+		std::string fallbackPath = xmlDirectoryPath + filePath;
+		if (verbosLevel)
+		{
+			std::cout << "Trying fallback path: " << fallbackPath << std::endl;
+		}
+		infile.open(fallbackPath.c_str(), mode);
+		if (infile.is_open())
+		{
+			return true;
+		}
+	}
+	
+	return false;
+}
 
 UINT32 getFileSize(const char* filename, UINT32 &size)
 {
 	UINT32 err = 0;
-	std::ifstream in(filename, std::ifstream::ate | std::ifstream::binary);
-	if (in.is_open() == false)
+	std::ifstream in;
+	std::string filenameStr(filename);
+	
+	if (!TryOpenFileWithFallback(filenameStr, in, std::ios::ate | std::ios::binary))
 	{
 		err = ERR_FILE_NOT_FOUND;
 		ERR_PrintError(err, filename);
@@ -145,9 +176,9 @@ UINT32 CmdLineParser(int argc, char *argv[], string &inputXML, string &outBin)
 			}
 			else if (arg[1] == 'v') // handle verbosity level
 			{
-				for (UINT8 i = 1; i < arg.size(); ++i)
+				for (UINT8 j = 1; j < arg.size(); ++j)
 				{
-					if (arg[i] == 'v')
+					if (arg[j] == 'v')
 					{
 						++verbosLevel;
 					}

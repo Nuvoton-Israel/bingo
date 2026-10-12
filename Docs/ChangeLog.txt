@@ -1,0 +1,56 @@
+===============================================================================
+  Nuvoton Technology Corporation 
+  Bingo - Binary Construction and Generation Tool
+  Change Log document
+  Copyright (c) 2021 Nuvoton Technology Israel. All Rights Reserved
+===============================================================================
+
+version 0.0.8
+---------------
+* Add mask format 'fillField': <mask format='fillField'>0xff</mask> selects the whole field.
+	Valid only for the <mask> of an ecc=none field (empty value or 0xff), used with the -mask pass.
+	A bare <mask>0xff</mask> on an ecc=none field is unchanged (only the first byte is selected).
+	Output is identical to 0.0.7 for all existing Arbel fuse maps.
+* Fix build with current g++: use std::ios_base::openmode for the file open mode.
+
+version 0.0.7
+---------------
+*Add fallback file resolution for XML relative paths:
+	Fixes issue where XML files in subdirectories couldn't find relative path files.
+	Now tries original path first, then xmlDirectoryPath + relative path as fallback.
+* Fix variable name conflict in CmdLineParser
+
+version 0.0.6
+---------------
+1. For nibble parity- use only option of singular 0xff or 0x00 mask. no matter what content format it has.
+2. For secded parity - no more usage of "maskAllSizes" , use only option of singular 0xff or 0x00 mask.
+
+version 0.0.5
+---------------
+* fix to mask: added Mask in nibble parity
+* fix to mask: show error in case content is not zero and mask is empty
+
+version 0.0.4
+---------------
+* Added "mask" option
+
+version 0.0.3
+---------------
+* Add hamming code parity (SECDED).
+* Add "All rights reserved" to all files.
+
+version 0.0.2
+---------------
+* Change license to SPDX GPL V2.
+* gather hal used definitions in a single file (bingo_types.h).
+* defuct SWC_HAL: will not be published on GitHub.
+* update examples.
+* add makefile. Needed for Yocto. Remove build.sh
+
+version 0.0.1
+---------------
+* Initial Version
+
+
+
+    

@@ -39,6 +39,15 @@ UINT32 GetIntegerFromString(string str, UINT_T &val)
 }
 
 /*
+	Helper function to open a file with fallback path resolution
+	Returns true if file was successfully opened, false otherwise
+*/
+bool OpenFileWithFallback(ifstream &infile, const string &filePath)
+{
+	return TryOpenFileWithFallback(filePath, infile, ios::binary);
+}
+
+/*
 	Generic numeric string parser, for fixed UINT output
 */
 template <class UINT_T> 
@@ -119,9 +128,7 @@ UINT32 HandleNumericValueString(string str, UINT_T &val, const Field_Attributes 
 	{
 		// in this case str contains a path to a file, and val should be the content of it (only those who gets in the var type)
 		ifstream infile;
-		// try to open the file
-		infile.open(str.c_str(), ios::binary);
-		if (!infile.is_open())
+		if (!OpenFileWithFallback(infile, str))
 		{
 			string errStr = "Filename: " + str;
 			ERR_PrintError(ERR_FILE_NOT_FOUND, errStr);
@@ -299,9 +306,7 @@ UINT32 HandleNumericValueString(std::string str, UINT8 * &buff, UINT32 buffSize,
 	{
 		// in this case str contains a path to a file, and val should be the content of it (only those who gets in the var type)
 		ifstream infile;
-		// try to open the file
-		infile.open(str.c_str(), ios::binary);
-		if (!infile.is_open())
+		if (!OpenFileWithFallback(infile, str))
 		{
 			string errStr = "Filename: " + str;
 			ERR_PrintError(ERR_FILE_NOT_FOUND, errStr);
@@ -537,6 +542,25 @@ UINT32 Field_BinField::handleElememtXML( pugi::xml_node &node )
 			}
 
 			string configurationString = node_it->name();
+			if (attributes.format_id == Field_Attributes::attr_fillField)
+			{
+				// <mask format='fillField'>: select the whole field. Valid only for a mask of an ecc=none field.
+				string value = node_it->child_value();
+				if (configurationString != "mask" || this->eccType != ECC_noECC ||
+					(value != "" && value != "0xff" && value != "0xFF"))
+				{
+					std::cout << "error encountered at " << this->name << "." << subField << ", format='fillField' is only valid for <mask> of an ecc=none field, with an empty value or 0xff" << endl;
+					return ERR_ILLEGAL_VAL;
+				}
+				if (isMaskRequested)
+				{
+					MaskFound = true;
+					this->maskExists = true;
+					dataBuffer = new UINT8[size];
+					memset(dataBuffer, 0xff, size);
+				}
+				continue;
+			}
 			if (configurationString == "mask" && isMaskRequested)
 			{
 				MaskFound = true;
@@ -768,6 +792,10 @@ UINT32 Field_Attributes::setAttribute( pugi::xml_attribute &attr )
 				{
 					this->format_id = attr_FileContent;
 				}
+				else if (attrValue == SupportedFormatAttr[attr_fillField])
+				{
+					this->format_id = attr_fillField;
+				}
 				else
 				{
 					string errStr = attrName+"="+attrValue;
@@ -848,4 +876,4 @@ UINT32 Field_Attributes::getAttributesFromNode( pugi::xml_node &node )
 }
 
 const string Field_Attributes::SupportedAttributes[NUM_SUPPORTED_ATTRIBUTES] = {"format", "align", "file_start_offset", "reverse"};
-const string Field_Attributes::SupportedFormatAttr[NUM_OF_SUPPORTED_FORMAT_ATTR] = {"32bit" ,"bytes", "FileSize", "FileContent"};
+const string Field_Attributes::SupportedFormatAttr[NUM_OF_SUPPORTED_FORMAT_ATTR] = {"32bit" ,"bytes", "FileSize", "FileContent", "fillField"};

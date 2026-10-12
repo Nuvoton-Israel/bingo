@@ -131,6 +131,16 @@ int main(int argc, char *argv[])
 		TERMINATE_APP(ES_CLI_PARSING_ERROR);
 	}
 	
+	// Extract directory path from XML filename for fallback file resolution
+	size_t lastSlash = inputXMLFilename.find_last_of("/\\");
+	if (lastSlash != string::npos)
+	{
+		xmlDirectoryPath = inputXMLFilename.substr(0, lastSlash + 1);
+	}
+	else
+	{
+		xmlDirectoryPath = "";  // XML file is in current directory
+	}
 	
 	if (verbosLevel)
 	{

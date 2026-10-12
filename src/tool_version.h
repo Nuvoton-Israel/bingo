@@ -29,7 +29,7 @@ Where:
 */
 
 
-#define BingoVersion			0x00000006  //ver 0.0.6
+#define BingoVersion			0x00000008  //ver 0.0.8 (0.0.7 + <mask format='fillField'>)
 
 #define VER_MAJ(X)			((X&0x00ff0000)>>16)
 #define VER_MIN(X)			((X&0x0000ff00)>>8)

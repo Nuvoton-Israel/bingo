@@ -186,7 +186,7 @@ UINT32 FM_CreateBinFile( std::vector<Field_BinField *> &fields, Field_ImagePrope
 				err = ECC_performECC((*it)->eccType, (*it)->dataBuffer, tempBuff, tempBuffSize, currentOffset);
 				if (err)
 				{
-					printf("CRC failed offset %d\n", currentOffset);
+					printf("CRC failed offset %d\n",currentOffset);
 					break;
 				}
 

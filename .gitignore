@@ -1,0 +1,5 @@
+deliverables/
+windows_build/Release/
+windows_build/result.txt
+windows_build/log_1.txt
+windows_build/ProductionBuild.log

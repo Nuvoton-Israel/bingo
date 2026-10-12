@@ -1,0 +1,16 @@
+name: Production
+
+on:
+  push:
+    tags:
+      # Version tags only - must start with a digit (no leading 'v').
+      # Coarse pre-filter; the exact format is re-validated in the reusable
+      # workflow, which also enforces that the tag sits on main.
+      - '[0-9]+.[0-9]+.[0-9]+*'
+
+jobs:
+  release:
+    uses: nuvoton-IS00/SWC_AutoProd/.github/workflows/autoprod-release.yml@main
+    with:
+      # No runner carries the default AUTOPROD_TRIGGER label yet.
+      runner_label: SWPVOWP0_PROD

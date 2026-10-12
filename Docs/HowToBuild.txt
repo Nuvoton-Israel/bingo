@@ -1,0 +1,33 @@
+===============================================================================
+  Nuvoton Technology Corporation 
+  Bingo - Binary Construction and Generation Tool
+  How To Build document
+  Copyright (c) 2018 Nuvoton Technology Israel. All Rights Reserved
+===============================================================================
+
+Requirements (Windows):
+--------------------------
+1) Microsoft .NET framework 4
+
+
+Requirements (Linux):
+--------------------------
+1) g++ 4.6.3 and up
+
+
+How to Build (Windows):
+------------------------
+  Goto windows_build folder
+  Run Production.bat
+  
+How to Build (Linux):
+------------------------
+ Goto linux_build folder
+  Run make
+  
+Deliverables:
+--------------------------
+1) deliverables\windows    directory - windows executable
+2) deliverables\linux      directory - linux executable
+
+

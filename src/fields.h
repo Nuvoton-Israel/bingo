@@ -51,6 +51,7 @@ public:
 		attr_bytes,
 		attr_FileSize,
 		attr_FileContent,
+		attr_fillField,	// mask only: select the whole field (all bytes 0xff)
 		NUM_OF_SUPPORTED_FORMAT_ATTR
 	}formatAttr;
 	static const std::string SupportedFormatAttr[NUM_OF_SUPPORTED_FORMAT_ATTR];

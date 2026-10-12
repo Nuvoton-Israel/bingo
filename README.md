@@ -1,6 +1,7 @@
 # Binary Generator (Bingo)
 Generate a Binary from XML with ECC support
 Latest version 0.0.5 supports Arbel.
+Version 0.0.8 (based on 0.0.7): adds `<mask format='fillField'>` that selects the whole field for `ecc=none` fields (used by Tavor). All other behavior, including a bare `0xff` mask, is unchanged from 0.0.7.
 
 # bingo
 bingo - Binary Image Generator
@@ -12,7 +13,7 @@ bingo - Binary Image Generator
 1) g++ 4.6.3 and up
 
 ## Windows version:
-  A compiled executable is provided under ./windows
+  Build with windows_build\Production.bat (Visual Studio 2013); the executable is created in deliverables\windows
   
 ## How to Build (Linux):
   make (located at ./linux_build)
@@ -132,6 +133,8 @@ if BinSize = 0 or it is omitted, the binary size will be calculated oat runtime 
          format='FileContent': the text value is considered a path to a file that its content is taken into the field 
            example: <content format='FileContent'>./BootBlock.bin</content>
          format='FileSize': the text value is considered a path to a file that its length is calculated and taken into the field
+         format='fillField' (version 0.0.8, <mask> of an ecc=none field only): the mask selects the whole field (every byte 0xff); the value must be empty or 0xff
+           example: <mask format='fillField'>0xff</mask>
            example: <size format='FileSize'>./BootBlock.bin</size>
          align='value': if format='FileSize' attribute is used the value of the field will be aligned up to the attribute value
            if preceded with 0x it is considered hexadecimal value, otherwise a decimal value
@@ -180,7 +183,7 @@ Value Fields Attributes
 The BinField element includes some “value type” children nodes. Value type means a numeric value which can be taken from different sources: actual text in the XML node, file content, or a file size. 
 The selection between the different kinds of input values is done according to the node attributes described below:
 
--	**Format** – selects the format in which Bingo should interpret the input. May be one of the following: '32bit', 'bytes', 'FileContent', 'FileSize' (default – ‘32bit’). See detailed explanation about each attribute in section ‎3.1.2.
+-	**Format** – selects the format in which Bingo should interpret the input. May be one of the following: '32bit', 'bytes', 'FileContent', 'FileSize', and, for a <mask> of an ecc=none field only, 'fillField' (default – ‘32bit’). See detailed explanation about each attribute in section ‎3.1.2.
 -	**Alignment** – alignment (in bytes, default = 0) that Bingo should perform on the input value.
 -	File Start **Offset** – when the value format is selected to be FileContent, this attribute contains the offset inside that file from which Bingo would start take data from.
 -	**Reverse** – A Boolean value (may be ‘true’ or ‘false’, default is ‘false’),  which tells bingo weather to reverse the input data (after ECC encoding).

@@ -18,6 +18,8 @@
 #include "errors.h"
 #include "utilities.h"
 #include "fields.h"
+#include "sha.h"
+#include <iterator>
 
 using namespace std;
 
@@ -169,6 +171,12 @@ UINT32 HandleNumericValueString(string str, UINT_T &val, const Field_Attributes 
 		
 		// close file
 		infile.close();
+	}
+	else if (attributes.isContentOnlyFormat() || attributes.wordSwapped)
+	{
+		string errString = "a digest format, FileChecksum or word_swap is valid only for <content>";
+		ERR_PrintError(ERR_ILLEGAL_VAL, errString);
+		return ERR_ILLEGAL_VAL;
 	}
 
 	// perform alignment on val data according to attributes
@@ -348,14 +356,98 @@ UINT32 HandleNumericValueString(std::string str, UINT8 * &buff, UINT32 buffSize,
 		// close file
 		infile.close();
 	}
-	// reverse buffer in case 
+	else if (attributes.isDigestFormat())
+	{
+		// str is a path to a file; the field holds the digest of the file from fileStartOffset to its end
+		SHA_Type type = (SHA_Type)(attributes.format_id - Field_Attributes::attr_sha1);
+		UINT32 digestSize = SHA_DigestSize(type);
+		if (buffSize != digestSize)
+		{
+			ostringstream errStrStream;
+			errStrStream << "field size " << buffSize << " is not the " << digestSize << "-byte digest size of format '"
+				<< Field_Attributes::SupportedFormatAttr[attributes.format_id] << "'";
+			ERR_PrintError(ERR_ILLEGAL_VAL, errStrStream.str());
+			return ERR_ILLEGAL_VAL;
+		}
+		ifstream infile;
+		if (!OpenFileWithFallback(infile, str))
+		{
+			string errStr = "Filename: " + str;
+			ERR_PrintError(ERR_FILE_NOT_FOUND, errStr);
+			return ERR_FILE_NOT_FOUND;
+		}
+		vector<UINT8> data((istreambuf_iterator<char>(infile)), istreambuf_iterator<char>());
+		infile.close();
+		if (attributes.fileStartOffset > data.size())
+		{
+			string errString = "offset not found in file";
+			ERR_PrintError(ERR_FILE_ERROR, errString);
+			return ERR_FILE_ERROR;
+		}
+		data.erase(data.begin(), data.begin() + attributes.fileStartOffset);
+		vector<UINT8> digest = SHA_Digest(type, data);
+		memcpy(buff, digest.data(), digestSize);
+	}
+	else if (attributes.format_id == Field_Attributes::attr_FileChecksum)
+	{
+		// str is a path to a file; the field holds the two's complement of the 32-bit sum of
+		// the bytes of the file from fileStartOffset to its end, little endian
+		if (buffSize > 4)
+		{
+			string errStr = "when using the FileChecksum format, maximum field size should not exceed 4 bytes";
+			ERR_PrintError(ERR_ILLEGAL_VAL, errStr);
+			return ERR_ILLEGAL_VAL;
+		}
+		ifstream infile;
+		if (!OpenFileWithFallback(infile, str))
+		{
+			string errStr = "Filename: " + str;
+			ERR_PrintError(ERR_FILE_NOT_FOUND, errStr);
+			return ERR_FILE_NOT_FOUND;
+		}
+		vector<UINT8> data((istreambuf_iterator<char>(infile)), istreambuf_iterator<char>());
+		infile.close();
+		if (attributes.fileStartOffset > data.size())
+		{
+			string errString = "offset not found in file";
+			ERR_PrintError(ERR_FILE_ERROR, errString);
+			return ERR_FILE_ERROR;
+		}
+		UINT32 sum = 0;
+		for (size_t i = attributes.fileStartOffset; i < data.size(); ++i)
+		{
+			sum += data[i];
+		}
+		UINT32 checksum = 0 - sum;
+		memcpy(buff, &checksum, buffSize);
+	}
+	// reverse buffer in case
 	if (attributes.reversed)
 	{
-		for (UINT32 i = 0; i < (UINT32)buffSize/2; ++i) 
+		for (UINT32 i = 0; i < (UINT32)buffSize/2; ++i)
 		{
 			UINT8 temp = buff[buffSize-i-1];
 			buff[buffSize-i-1] = buff[i];
 			buff[i] = temp;
+		}
+	}
+	// swap the bytes inside each 4-byte word, after a reverse
+	if (attributes.wordSwapped)
+	{
+		if (buffSize % 4 != 0)
+		{
+			string errStr = "word_swap needs a field size that is a multiple of 4 bytes";
+			ERR_PrintError(ERR_ILLEGAL_VAL, errStr);
+			return ERR_ILLEGAL_VAL;
+		}
+		for (UINT32 i = 0; i < buffSize; i += 4)
+		{
+			UINT8 temp = buff[i];
+			buff[i] = buff[i+3];
+			buff[i+3] = temp;
+			temp = buff[i+1];
+			buff[i+1] = buff[i+2];
+			buff[i+2] = temp;
 		}
 	}
 	// perform alignment on val data according to attributes
@@ -542,6 +634,11 @@ UINT32 Field_BinField::handleElememtXML( pugi::xml_node &node )
 			}
 
 			string configurationString = node_it->name();
+			if (configurationString == "mask" && (attributes.isContentOnlyFormat() || attributes.wordSwapped))
+			{
+				std::cout << "error encountered at " << this->name << "." << subField << ", a digest format, FileChecksum or word_swap is only valid for <content>" << endl;
+				return ERR_ILLEGAL_VAL;
+			}
 			if (attributes.format_id == Field_Attributes::attr_fillField)
 			{
 				// <mask format='fillField'>: select the whole field. Valid only for a mask of an ecc=none field.
@@ -592,14 +689,22 @@ UINT32 Field_BinField::handleElememtXML( pugi::xml_node &node )
 			{
 				//reached here- meaning no mask on XML field, fail if content != 0 
 				string valueString = node_it->child_value();
-				if (valueString != "")
+				// a file path (FileContent, FileSize, a digest, FileChecksum) is not a value to check here
+				bool fromFile = attributes.format_id == Field_Attributes::attr_FileContent ||
+					attributes.format_id == Field_Attributes::attr_FileSize || attributes.isContentOnlyFormat();
+				if (valueString != "" && !fromFile)
 				{
-					UINT32 tempVal;
+					UINT32 tempVal = 0;
 					err = GetIntegerFromString(valueString, tempVal);
+					if (err)
+					{
+						std::cout << "error encountered at " << this->name << "." << subField << "." << configurationString << "=" << valueString << endl;
+						return err;
+					}
 					if (tempVal != 0)
 					{
 						std::cout << "error encountered at " << this->name << "." << subField << "." << configurationString << "=" << valueString << ", error, the content is not empty while the mask in compatible bit is 0 "<< endl;;
-						return err;
+						return ERR_ILLEGAL_VAL;
 					}
 				}
 				dataBuffer = new UINT8[size];
@@ -748,6 +853,7 @@ Field_Attributes::Field_Attributes(void)
 	alignment = 0;
 	fileStartOffset = 0;
 	reversed = false;
+	wordSwapped = false;
 }
 
 
@@ -761,6 +867,7 @@ void Field_Attributes::clearValues()
 	alignment = 0;
 	fileStartOffset = 0;
 	reversed = false;
+	wordSwapped = false;
 }
 
 UINT32 Field_Attributes::setAttribute( pugi::xml_attribute &attr )
@@ -795,6 +902,26 @@ UINT32 Field_Attributes::setAttribute( pugi::xml_attribute &attr )
 				else if (attrValue == SupportedFormatAttr[attr_fillField])
 				{
 					this->format_id = attr_fillField;
+				}
+				else if (attrValue == SupportedFormatAttr[attr_sha1])
+				{
+					this->format_id = attr_sha1;
+				}
+				else if (attrValue == SupportedFormatAttr[attr_sha256])
+				{
+					this->format_id = attr_sha256;
+				}
+				else if (attrValue == SupportedFormatAttr[attr_sha384])
+				{
+					this->format_id = attr_sha384;
+				}
+				else if (attrValue == SupportedFormatAttr[attr_sha512])
+				{
+					this->format_id = attr_sha512;
+				}
+				else if (attrValue == SupportedFormatAttr[attr_FileChecksum])
+				{
+					this->format_id = attr_FileChecksum;
 				}
 				else
 				{
@@ -847,7 +974,26 @@ UINT32 Field_Attributes::setAttribute( pugi::xml_attribute &attr )
 				}
 				return STS_OK;
 			}
-		} 
+			else if (attrIdx == attr_word_swap)
+			{
+				if (attrValue == "true")
+				{
+					this->wordSwapped = true;
+				}
+				else if (attrValue == "false")
+				{
+					this->wordSwapped = false;
+				}
+				else
+				{
+					UINT32 err = ERR_UNKNOWN_ATTR;
+					string errStr = attrName+"="+attrValue;
+					ERR_PrintError(err, errStr);
+					return err;
+				}
+				return STS_OK;
+			}
+		}
 
 	}
 
@@ -875,5 +1021,6 @@ UINT32 Field_Attributes::getAttributesFromNode( pugi::xml_node &node )
 	return STS_OK;
 }
 
-const string Field_Attributes::SupportedAttributes[NUM_SUPPORTED_ATTRIBUTES] = {"format", "align", "file_start_offset", "reverse"};
-const string Field_Attributes::SupportedFormatAttr[NUM_OF_SUPPORTED_FORMAT_ATTR] = {"32bit" ,"bytes", "FileSize", "FileContent", "fillField"};
+const string Field_Attributes::SupportedAttributes[NUM_SUPPORTED_ATTRIBUTES] = {"format", "align", "file_start_offset", "reverse", "word_swap"};
+const string Field_Attributes::SupportedFormatAttr[NUM_OF_SUPPORTED_FORMAT_ATTR] = {"32bit" ,"bytes", "FileSize", "FileContent", "fillField",
+	"sha1", "sha256", "sha384", "sha512", "FileChecksum"};

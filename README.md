@@ -2,6 +2,7 @@
 Generate a Binary from XML with ECC support
 Latest version 0.0.5 supports Arbel.
 Version 0.0.8 (based on 0.0.7): adds `<mask format='fillField'>` that selects the whole field for `ecc=none` fields (used by Tavor). All other behavior, including a bare `0xff` mask, is unchanged from 0.0.7.
+Version 0.0.9 (based on 0.0.8): adds the content formats `sha1`, `sha256`, `sha384` and `sha512` (the digest of a file) and `FileChecksum` (the two's complement of the byte sum of a file), and the `word_swap` attribute. A field without a `<mask>` whose content is a file is masked out in the mask pass. All other behavior is unchanged from 0.0.8.
 
 # bingo
 bingo - Binary Image Generator
@@ -135,6 +136,13 @@ if BinSize = 0 or it is omitted, the binary size will be calculated oat runtime 
          format='FileSize': the text value is considered a path to a file that its length is calculated and taken into the field
          format='fillField' (version 0.0.8, <mask> of an ecc=none field only): the mask selects the whole field (every byte 0xff); the value must be empty or 0xff
            example: <mask format='fillField'>0xff</mask>
+         format='sha1', 'sha256', 'sha384', 'sha512' (version 0.0.9, <content> only): the text value is a path to a file;
+           the field holds the digest of the file, from file_start_offset to its end, in FIPS 180-4 byte order.
+           The field size must be the digest size: 20, 32, 48 or 64 bytes
+           example: <content format='sha384'>staging/Z1/bl31.bin</content>
+         format='FileChecksum' (version 0.0.9, <content> only): the text value is a path to a file; the field (up to 4 bytes) holds
+           the two's complement of the 32-bit sum of the bytes of the file, from file_start_offset to its end, little endian
+           example: <content format='FileChecksum'>staging/Z1/bl31.bin</content>
            example: <size format='FileSize'>./BootBlock.bin</size>
          align='value': if format='FileSize' attribute is used the value of the field will be aligned up to the attribute value
            if preceded with 0x it is considered hexadecimal value, otherwise a decimal value
@@ -149,6 +157,9 @@ if BinSize = 0 or it is omitted, the binary size will be calculated oat runtime 
          BinField.content
 reverse='condition': this attribute indicates bingo if the binary field should be reversed when it is implemented into output binary. Valid values are 'true' and 'false'.
            example: <content format='FileContent' reverse ='true'> ./signature.bin</content>
+word_swap='condition' (version 0.0.9, <content> only): swaps the bytes inside each 4-byte word of the field, after reverse. Valid values are 'true' and 'false'.
+           The field size must be a multiple of 4
+           example: <content format='sha384' word_swap='true'>vendor_pk_descriptor.bin</content>
 -->
 ```
 
@@ -183,10 +194,11 @@ Value Fields Attributes
 The BinField element includes some “value type” children nodes. Value type means a numeric value which can be taken from different sources: actual text in the XML node, file content, or a file size. 
 The selection between the different kinds of input values is done according to the node attributes described below:
 
--	**Format** – selects the format in which Bingo should interpret the input. May be one of the following: '32bit', 'bytes', 'FileContent', 'FileSize', and, for a <mask> of an ecc=none field only, 'fillField' (default – ‘32bit’). See detailed explanation about each attribute in section ‎3.1.2.
+-	**Format** – selects the format in which Bingo should interpret the input. May be one of the following: '32bit', 'bytes', 'FileContent', 'FileSize', for <content> only 'sha1', 'sha256', 'sha384', 'sha512' and 'FileChecksum', and, for a <mask> of an ecc=none field only, 'fillField' (default – ‘32bit’). See detailed explanation about each attribute in section ‎3.1.2.
 -	**Alignment** – alignment (in bytes, default = 0) that Bingo should perform on the input value.
 -	File Start **Offset** – when the value format is selected to be FileContent, this attribute contains the offset inside that file from which Bingo would start take data from.
 -	**Reverse** – A Boolean value (may be ‘true’ or ‘false’, default is ‘false’),  which tells bingo weather to reverse the input data (after ECC encoding).
+-	**Word swap** – A Boolean value (may be ‘true’ or ‘false’, default is ‘false’), which tells bingo to swap the bytes inside each 4-byte word of the content, after reverse.
 
 
 ##	XML Fields and specifications

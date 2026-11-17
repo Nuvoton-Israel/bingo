@@ -43,6 +43,7 @@ BINGO_SRC    =    \
 		$(SRC_DIR)/fields.cpp              \
 		$(SRC_DIR)/file_maker.cpp          \
 		$(SRC_DIR)/main.cpp                \
+		$(SRC_DIR)/sha.cpp                 \
 		$(SRC_DIR)/utilities.cpp
 
 #----------------------------------------------------------------------------

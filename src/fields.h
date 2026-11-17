@@ -41,6 +41,7 @@ public:
 		attr_align,		 // describes the alignment of the output
 		attr_file_start_offset,
 		attr_reverse_bytes,
+		attr_word_swap,	 // swaps the bytes inside each 4-byte word of the field
 		NUM_SUPPORTED_ATTRIBUTES
 	};
 	static const std::string SupportedAttributes[NUM_SUPPORTED_ATTRIBUTES]; //  = {"format", "align", "start_offset"};
@@ -52,15 +53,24 @@ public:
 		attr_FileSize,
 		attr_FileContent,
 		attr_fillField,	// mask only: select the whole field (all bytes 0xff)
+		attr_sha1,		// content only: the digest of a file; the field size is the digest size
+		attr_sha256,
+		attr_sha384,
+		attr_sha512,
+		attr_FileChecksum,	// content only: two's complement of the 32-bit sum of the bytes of a file
 		NUM_OF_SUPPORTED_FORMAT_ATTR
 	}formatAttr;
 	static const std::string SupportedFormatAttr[NUM_OF_SUPPORTED_FORMAT_ATTR];
-	
-	
+
+	bool isDigestFormat() const { return format_id >= attr_sha1 && format_id <= attr_sha512; }
+	// formats computed from a file, valid only for <content>
+	bool isContentOnlyFormat() const { return isDigestFormat() || format_id == attr_FileChecksum; }
+
 	UINT32		format_id;
 	UINT32		alignment;
 	UINT32		fileStartOffset;
 	bool		reversed;
+	bool		wordSwapped;
 
 
 };

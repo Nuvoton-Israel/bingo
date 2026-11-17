@@ -5,6 +5,24 @@
   Copyright (c) 2021 Nuvoton Technology Israel. All Rights Reserved
 ===============================================================================
 
+version 0.0.9
+---------------
+* Add content formats 'sha1', 'sha256', 'sha384' and 'sha512': the text value is a path to a file,
+	and the field holds the digest of the file (from file_start_offset to its end), in FIPS 180-4
+	byte order. The field size must equal the digest size (20, 32, 48 or 64 bytes).
+	Example: <content format='sha384'>staging/Z1/bl31.bin</content>
+* Add content format 'FileChecksum': the text value is a path to a file, and the field (up to 4 bytes)
+	holds the two's complement of the 32-bit sum of the bytes of the file (from file_start_offset),
+	little endian.
+	Example: <content format='FileChecksum'>staging/Z1/bl31.bin</content>
+* Add attribute word_swap='true': swaps the bytes inside each 4-byte word of the field (after reverse).
+	The field size must be a multiple of 4.
+* Mask pass (-mask): a field without a <mask> whose <content> is FileContent, FileSize, a digest or FileChecksum is masked out;
+	its file path is not parsed as a number.
+* Mask pass (-mask): a field without a <mask> whose <content> is not zero stops Bingo with an error;
+	0.0.8 printed the error, went on with an empty field and could crash.
+* Output is identical to 0.0.8 for XML files that use none of these.
+
 version 0.0.8
 ---------------
 * Add mask format 'fillField': <mask format='fillField'>0xff</mask> selects the whole field.
